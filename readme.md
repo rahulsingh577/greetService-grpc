@@ -13,3 +13,11 @@ of the grpc which leverages the HTTP2 protocol
         as clients send data.
      3. When client sends data to teh server without expecting
         any response from it.   
+
+4.Bidirectional Streaming
+
+    usecases:
+    1. When the client and server needs to send a lot of data 
+       asynchronously.
+    2. "Chat" protocol
+    3. For a very long running message.  
