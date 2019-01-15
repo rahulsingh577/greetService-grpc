@@ -23,7 +23,8 @@ func main() {
 	client := greetpb.NewGreetServiceClient(conn)
 	//	doUnary(client)
 	//doServerStreaming(client)
-	doCientStreaming(client)
+	//doCientStreaming(client)
+	doBidirectionalStreaming(client)
 
 }
 
@@ -120,4 +121,84 @@ func doCientStreaming(client greetpb.GreetServiceClient) {
 		log.Fatalf("error while connecting to the longGreet: %v", err)
 	}
 	fmt.Printf("LongGreet Respone: %v\n", res)
+}
+
+func doBidirectionalStreaming(client greetpb.GreetServiceClient) {
+
+	fmt.Println("Starting bidriectional client streaming RPC..")
+
+	waitc := make(chan struct{})
+
+	// create a stream by invoking the client
+	stream, err := client.GreetEveryone(context.Background())
+	if err != nil {
+		log.Fatalf("Error while creating the stream: %v", err)
+	}
+
+	requests := []*greetpb.GreetEveryoneRequest{
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Rahul",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Tanuj",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Anurag",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Bojack",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Aurthur",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Gatsby",
+			},
+		},
+	}
+
+	go func() {
+		// we send messages to teh client
+		for _, req := range requests {
+
+			stream.Send(req)
+			fmt.Printf("Sending message: %v\n", req)
+			time.Sleep(1000 * time.Millisecond)
+		}
+		stream.CloseSend()
+
+	}()
+
+	// we do recieve from the clients
+
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				close(waitc)
+			}
+			if err != nil {
+				log.Fatalf("Error while recieving : %v", err)
+				close(waitc)
+			}
+			fmt.Printf("Recived: %v", res.GetResult())
+
+		}
+		close(waitc)
+	}()
+
+	// block the things till processing is done
+	<-waitc
+
 }
